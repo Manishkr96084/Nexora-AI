@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: nexora-ai
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: DATABASE_NAME
+        value: ai_chatbot_db
+      - key: DEFAULT_MODEL
+        value: gemini-2.5-flash
