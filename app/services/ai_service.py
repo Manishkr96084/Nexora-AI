@@ -2019,10 +2019,10 @@ class AIService:
                 chunks = await loop.run_in_executor(None, lambda: _stream_sync(model_name))
             except Exception as call_err:
                 err_msg = str(call_err)
-                if ("NOT_FOUND" in err_msg or "404" in err_msg or "not available" in err_msg.lower()) and model_name != "gemini-3.6-flash":
-                    logger.warning(f"Model {model_name} returned 404/NOT_FOUND. Retrying with active model gemini-3.6-flash...")
+                if ("NOT_FOUND" in err_msg or "404" in err_msg or "not available" in err_msg.lower()) and model_name != "gemini-2.5-flash":
+                    logger.warning(f"Model {model_name} returned 404/NOT_FOUND. Retrying with active model gemini-2.5-flash...")
                     try:
-                        chunks = await loop.run_in_executor(None, lambda: _stream_sync("gemini-3.6-flash"))
+                        chunks = await loop.run_in_executor(None, lambda: _stream_sync("gemini-2.5-flash"))
                     except Exception as retry_err:
                         raise retry_err
                 else:

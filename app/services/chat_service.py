@@ -28,9 +28,15 @@ class ChatService:
             "last_message": None
         }
 
+        saved_to_mongo = False
         if db_manager.is_connected and db_manager.db is not None:
-            await db_manager.db.chats.insert_one(chat_doc.copy())
-        else:
+            try:
+                await db_manager.db.chats.insert_one(chat_doc.copy())
+                saved_to_mongo = True
+            except Exception as e:
+                logger.warning(f"Failed to insert chat into MongoDB ({e}). Falling back to in-memory store.")
+
+        if not saved_to_mongo:
             _in_memory_chats[chat_id] = chat_doc.copy()
 
         return chat_doc
@@ -38,21 +44,28 @@ class ChatService:
     @classmethod
     async def get_chat(cls, chat_id: str) -> Optional[Dict[str, Any]]:
         if db_manager.is_connected and db_manager.db is not None:
-            chat = await db_manager.db.chats.find_one({"id": chat_id}, {"_id": 0})
-            return chat
-        else:
-            return _in_memory_chats.get(chat_id)
+            try:
+                chat = await db_manager.db.chats.find_one({"id": chat_id}, {"_id": 0})
+                if chat:
+                    return chat
+            except Exception as e:
+                logger.warning(f"Failed to find chat in MongoDB ({e}). Checking in-memory.")
+        return _in_memory_chats.get(chat_id)
 
     @classmethod
     async def list_chats(cls) -> List[Dict[str, Any]]:
         if db_manager.is_connected and db_manager.db is not None:
-            cursor = db_manager.db.chats.find({}, {"_id": 0}).sort("updated_at", -1)
-            chats = await cursor.to_list(length=100)
-            return chats
-        else:
-            chats = list(_in_memory_chats.values())
-            chats.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
-            return chats
+            try:
+                cursor = db_manager.db.chats.find({}, {"_id": 0}).sort("updated_at", -1)
+                chats = await cursor.to_list(length=100)
+                if chats:
+                    return chats
+            except Exception as e:
+                logger.warning(f"Failed to list chats from MongoDB ({e}). Using in-memory.")
+
+        chats = list(_in_memory_chats.values())
+        chats.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
+        return chats
 
     @classmethod
     async def update_chat(cls, chat_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -60,35 +73,36 @@ class ChatService:
         clean_updates = {k: v for k, v in updates.items() if v is not None}
 
         if db_manager.is_connected and db_manager.db is not None:
-            result = await db_manager.db.chats.find_one_and_update(
-                {"id": chat_id},
-                {"$set": clean_updates},
-                return_document=True,
-                projection={"_id": 0}
-            )
-            return result
-        else:
-            if chat_id in _in_memory_chats:
-                _in_memory_chats[chat_id].update(clean_updates)
-                return _in_memory_chats[chat_id]
-            return None
+            try:
+                result = await db_manager.db.chats.find_one_and_update(
+                    {"id": chat_id},
+                    {"$set": clean_updates},
+                    return_document=True,
+                    projection={"_id": 0}
+                )
+                if result:
+                    return result
+            except Exception as e:
+                logger.warning(f"Failed to update chat in MongoDB ({e}). Updating in-memory.")
+
+        if chat_id in _in_memory_chats:
+            _in_memory_chats[chat_id].update(clean_updates)
+            return _in_memory_chats[chat_id]
+        return None
 
     @classmethod
     async def delete_chat(cls, chat_id: str) -> bool:
-        # Delete from MongoDB if connected
         if db_manager.is_connected and db_manager.db is not None:
             try:
                 await db_manager.db.chats.delete_many({"$or": [{"id": chat_id}, {"_id": chat_id}]})
                 await db_manager.db.messages.delete_many({"chat_id": chat_id})
             except Exception as e:
-                logger.error(f"Error deleting chat from MongoDB: {e}")
+                logger.warning(f"Error deleting chat from MongoDB: {e}")
 
-        # Always delete from in-memory store as well
         global _in_memory_messages
         if chat_id in _in_memory_chats:
             del _in_memory_chats[chat_id]
         _in_memory_messages = [m for m in _in_memory_messages if m.get("chat_id") != chat_id]
-
         return True
 
     @classmethod
@@ -105,21 +119,26 @@ class ChatService:
             "timestamp": now
         }
 
+        saved_to_mongo = False
         if db_manager.is_connected and db_manager.db is not None:
-            await db_manager.db.messages.insert_one(msg_doc.copy())
-            # Update chat metadata
-            message_count = await db_manager.db.messages.count_documents({"chat_id": chat_id})
-            await db_manager.db.chats.update_one(
-                {"id": chat_id},
-                {
-                    "$set": {
-                        "updated_at": now,
-                        "message_count": message_count,
-                        "last_message": content[:80] + ("..." if len(content) > 80 else "")
+            try:
+                await db_manager.db.messages.insert_one(msg_doc.copy())
+                message_count = await db_manager.db.messages.count_documents({"chat_id": chat_id})
+                await db_manager.db.chats.update_one(
+                    {"id": chat_id},
+                    {
+                        "$set": {
+                            "updated_at": now,
+                            "message_count": message_count,
+                            "last_message": content[:80] + ("..." if len(content) > 80 else "")
+                        }
                     }
-                }
-            )
-        else:
+                )
+                saved_to_mongo = True
+            except Exception as e:
+                logger.warning(f"Failed to insert message into MongoDB ({e}). Using in-memory fallback.")
+
+        if not saved_to_mongo:
             _in_memory_messages.append(msg_doc.copy())
             if chat_id in _in_memory_chats:
                 chat_msgs = [m for m in _in_memory_messages if m.get("chat_id") == chat_id]
@@ -132,10 +151,14 @@ class ChatService:
     @classmethod
     async def get_messages(cls, chat_id: str) -> List[Dict[str, Any]]:
         if db_manager.is_connected and db_manager.db is not None:
-            cursor = db_manager.db.messages.find({"chat_id": chat_id}, {"_id": 0}).sort("timestamp", 1)
-            messages = await cursor.to_list(length=500)
-            return messages
-        else:
-            messages = [m for m in _in_memory_messages if m.get("chat_id") == chat_id]
-            messages.sort(key=lambda x: x.get("timestamp", ""))
-            return messages
+            try:
+                cursor = db_manager.db.messages.find({"chat_id": chat_id}, {"_id": 0}).sort("timestamp", 1)
+                messages = await cursor.to_list(length=500)
+                if messages:
+                    return messages
+            except Exception as e:
+                logger.warning(f"Failed to query messages from MongoDB ({e}). Using in-memory fallback.")
+
+        messages = [m for m in _in_memory_messages if m.get("chat_id") == chat_id]
+        messages.sort(key=lambda x: x.get("timestamp", ""))
+        return messages

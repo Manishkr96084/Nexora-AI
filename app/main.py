@@ -29,11 +29,17 @@ logger = logging.getLogger("aichatbot")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Initializing NEXORA AI backend...")
-    await db_manager.connect()
+    try:
+        await asyncio.wait_for(db_manager.connect(), timeout=2.5)
+    except Exception as e:
+        logger.warning(f"Database initialization warning (using in-memory fallback): {e}")
     yield
     if db_manager.client:
-        logger.info("Closing MongoDB client connection...")
-        db_manager.client.close()
+        try:
+            logger.info("Closing MongoDB client connection...")
+            db_manager.client.close()
+        except Exception:
+            pass
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -55,21 +61,48 @@ app.add_middleware(
 
 # Base directory setup
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-STATIC_DIR = os.path.join(BASE_DIR, "static")
-TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+CWD_DIR = os.getcwd()
 
-# Mount Static assets
-if os.path.exists(STATIC_DIR):
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+possible_template_dirs = [
+    os.path.join(BASE_DIR, "templates"),
+    os.path.join(CWD_DIR, "templates"),
+    "/var/task/templates"
+]
+template_dirs = [d for d in possible_template_dirs if os.path.exists(d)]
+if not template_dirs:
+    template_dirs = [os.path.join(BASE_DIR, "templates")]
 
-templates = Jinja2Templates(directory=TEMPLATES_DIR)
+possible_static_dirs = [
+    os.path.join(BASE_DIR, "static"),
+    os.path.join(CWD_DIR, "static"),
+    "/var/task/static"
+]
+static_dir = os.path.join(BASE_DIR, "static")
+for d in possible_static_dirs:
+    if os.path.exists(d):
+        static_dir = d
+        break
+
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+templates = Jinja2Templates(directory=template_dirs)
 
 # --- Routes ---
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_home(request: Request):
     """Serve the single-page application UI"""
-    return templates.TemplateResponse("index.html", {"request": request, "project_name": settings.PROJECT_NAME})
+    try:
+        return templates.TemplateResponse("index.html", {"request": request, "project_name": settings.PROJECT_NAME})
+    except Exception as e:
+        logger.error(f"Error serving index.html: {e}")
+        for tdir in template_dirs:
+            index_path = os.path.join(tdir, "index.html")
+            if os.path.exists(index_path):
+                with open(index_path, "r", encoding="utf-8") as f:
+                    return HTMLResponse(content=f.read())
+        return HTMLResponse(content="<h1>NEXORA AI Backend Online</h1>", status_code=200)
 
 @app.get("/api/health", response_model=HealthResponse)
 async def get_health():

@@ -21,6 +21,13 @@ env/
 .idea/
 *.swp
 
+# Node & Frontend Build
+node_modules/
+dist/
+build/
+.vercel
+
 # OS generated files
 .DS_Store
 Thumbs.db
+
