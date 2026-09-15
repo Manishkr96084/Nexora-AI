@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXORA AI — One AI. Everything You Need.</title>
+    <meta name="description" content="NEXORA AI — One AI. Everything You Need. Your intelligent AI assistant for chat, coding, vision, research and more.">
+    <meta property="og:title" content="NEXORA AI — One AI. Everything You Need.">
+    <meta property="og:description" content="Your intelligent AI assistant for chat, coding, vision, research and more.">
+    <link rel="icon" type="image/png" href="/static/assets/nexora-ai-favicon.png?v=2.0">
+    
+    <!-- Google Fonts: Google Sans / Outfit & Inter & Fira Code -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Highlight.js Syntax Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <!-- Marked.js Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Gemini UI Stylesheet -->
+    <link rel="stylesheet" href="/static/css/style.css?v=5.0">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Gemini Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <button class="icon-btn sidebar-toggle-btn" id="toggleSidebarBtn" title="Collapse Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="gemini-brand-title">
+                    <img src="/static/assets/nexora-ai-logo.png?v=5.0" alt="NEXORA AI Logo" class="nexora-logo-img">
+                    <span>NEXORA AI</span>
+                </div>
+            </div>
+
+            <button class="new-chat-pill" id="newChatBtn">
+                <i class="fa-solid fa-plus"></i>
+                <span>New chat</span>
+            </button>
+
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchChatInput" placeholder="Search chats...">
+            </div>
+
+            <div class="conversations-wrapper">
+                <div class="section-label">Recent</div>
+                <div class="chat-list" id="chatList">
+                    <!-- Dynamic chat threads inserted here -->
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-account-card" id="userAccountCard">
+                    <div class="user-info" id="userInfo">
+                        <img src="https://api.dicebear.com/7.x/bottts/svg?seed=guest" alt="User Avatar" class="user-avatar" id="userAvatar">
+                        <div class="user-details">
+                            <div class="user-name" id="userName">Guest Developer</div>
+                            <div class="user-email" id="userEmail">Sign in to save history</div>
+                        </div>
+                    </div>
+                    <button class="user-action-btn" id="authActionBtn" title="Sign In / Register">
+                        <i class="fa-solid fa-right-to-bracket" id="authActionIcon"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Gemini Viewport -->
+        <main class="main-content">
+            <!-- Gemini Top Navigation Header -->
+            <header class="top-navbar">
+                <div class="navbar-left">
+                    <button class="icon-btn mobile-menu-btn" id="mobileMenuBtn">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+
+                <div class="navbar-right">
+                    <div class="current-chat-title-tag" id="currentChatTitle">
+                        <span>New Conversation</span>
+                    </div>
+
+                    <!-- Real-time Conversational Voice Mode Button -->
+                    <button class="voice-mode-trigger-btn" id="startVoiceModeBtn" type="button" title="Start Voice Conversation" aria-label="Start Voice Mode">
+                        <svg class="gemini-sparkle-sm" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 0C12 6.62742 6.62742 12 0 12C6.62742 12 12 17.3726 12 24C12 17.3726 17.3726 12 24 12C17.3726 12 12 6.62742 12 0Z" fill="url(#gemini-vm-grad)"/>
+                            <defs>
+                                <linearGradient id="gemini-vm-grad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#4285F4"/>
+                                    <stop offset="0.5" stop-color="#9B51E0"/>
+                                    <stop offset="1" stop-color="#E94235"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <span>Voice Mode</span>
+                    </button>
+
+                    <!-- System Persona Settings (Hidden UI Only) -->
+                    <button class="icon-btn header-action-btn" id="systemPromptBtn" title="System Instructions" style="display: none !important; opacity: 0; pointer-events: none; position: absolute; visibility: hidden;">
+                        <i class="fa-solid fa-sliders"></i>
+                    </button>
+
+                    <!-- API Keys & DB Settings (Hidden UI Only) -->
+                    <button class="icon-btn header-action-btn" id="settingsBtn" title="Gemini API & DB Settings" style="display: none !important; opacity: 0; pointer-events: none; position: absolute; visibility: hidden;">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Chat Container Scroll View -->
+            <div class="chat-viewport" id="chatViewport">
+                <!-- Gemini Welcome & Greeting Screen -->
+                <div class="welcome-container" id="welcomeContainer">
+                    <div class="gemini-greeting-header">
+                        <div class="sparkle-badge">
+                            <img src="/static/assets/nexora-ai-logo.png?v=5.0" alt="NEXORA AI" class="nexora-logo-hero">
+                        </div>
+                        <h1 class="gemini-headline">Hello, I'm NEXORA AI</h1>
+                        <h2 class="gemini-subheadline">Your intelligent AI assistant for chat, coding, vision, research and more.</h2>
+                    </div>
+
+                    <!-- Starter Suggestion Cards Hidden -->
+                    <div class="starter-grid" style="display: none;">
+                        <div class="starter-card" data-action="prompt" data-prompt="Ask me anything and help me understand it clearly.">
+                            <div class="starter-card-header">
+                                <div class="starter-card-icon icon-ask"><i class="fa-solid fa-comments"></i></div>
+                                <span>General AI</span>
+                            </div>
+                            <h3>Ask Anything</h3>
+                            <p>Get clear answers, explanations and ideas.</p>
+                        </div>
+
+                        <div class="starter-card" data-action="prompt" data-prompt="Help me write, debug or improve my code.">
+                            <div class="starter-card-header">
+                                <div class="starter-card-icon icon-code"><i class="fa-solid fa-code"></i></div>
+                                <span>Developer</span>
+                            </div>
+                            <h3>Code Assistant</h3>
+                            <p>Write, debug, explain and improve code.</p>
+                        </div>
+
+                        <div class="starter-card" data-action="upload" data-prompt="I want to upload an image for analysis.">
+                            <div class="starter-card-header">
+                                <div class="starter-card-icon icon-vision"><i class="fa-solid fa-eye"></i></div>
+                                <span>Multimodal</span>
+                            </div>
+                            <h3>Vision AI</h3>
+                            <p>Analyze images, screenshots and documents.</p>
+                        </div>
+
+                        <div class="starter-card" data-action="image-search" data-prompt="Find images related to ">
+                            <div class="starter-card-header">
+                                <div class="starter-card-icon icon-search"><i class="fa-solid fa-image"></i></div>
+                                <span>Visual Web</span>
+                            </div>
+                            <h3>Image Search</h3>
+                            <p>Find relevant images, photos and visual references.</p>
+                        </div>
+
+                        <div class="starter-card" data-action="upload-doc" data-prompt="I want to upload a document for analysis.">
+                            <div class="starter-card-header">
+                                <div class="starter-card-icon icon-doc"><i class="fa-solid fa-file-lines"></i></div>
+                                <span>Documents</span>
+                            </div>
+                            <h3>Document Analysis</h3>
+                            <p>Upload and analyze documents.</p>
+                        </div>
+
+                        <div class="starter-card" data-action="voice">
+                            <div class="starter-card-header">
+                                <div class="starter-card-icon icon-voice"><i class="fa-solid fa-microphone"></i></div>
+                                <span>Audio Voice</span>
+                            </div>
+                            <h3>Voice Assistant</h3>
+                            <p>Talk naturally with NEXORA AI.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages Feed -->
+                <div class="messages-feed" id="messagesFeed" style="display: none;">
+                    <!-- Messages rendered dynamically -->
+                </div>
+            </div>
+
+            <!-- Signature Gemini Floating Input Capsule -->
+            <div class="input-container">
+                <div class="input-box-card">
+                    <div class="attachment-preview-container" id="attachmentPreview"></div>
+                    <div class="input-box-row">
+                        <input type="file" id="fileInput" multiple style="display: none;" accept=".txt,.py,.js,.html,.css,.json,.md,.csv,.pdf,image/*">
+                        
+                        <button class="input-icon-btn attach-btn" id="attachBtn" title="Upload image or file">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+
+                        <textarea id="promptInput" placeholder="Ask NEXORA AI anything..." rows="1"></textarea>
+
+                        <div class="input-actions-right">
+                            <button class="input-icon-btn voice-mic-btn" id="voiceMicBtn" title="Voice Mode" type="button" aria-label="Start voice mode"><i class="fa-solid fa-microphone" id="voiceMicIcon"></i></button>
+                            <button class="send-btn-circle" id="sendBtn" title="Send message" type="button"><i class="fa-solid fa-arrow-up"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="gemini-disclaimer">
+                    NEXORA AI may display inaccurate info, including about people, so double-check its responses.
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ChatGPT-Style Real-Time Voice Mode Full-Screen Overlay -->
+    <div class="voice-mode-overlay" id="voiceModeOverlay" aria-modal="true" role="dialog" aria-label="Voice Conversation Mode">
+        <div class="voice-mode-header">
+            <div class="voice-mode-brand">
+                <img src="/static/assets/nexora-ai-logo.png?v=5.0" alt="NEXORA AI" class="nexora-logo-img">
+                <span>NEXORA AI Voice Assistant</span>
+            </div>
+
+            <div class="voice-state-badge" id="voiceStateBadge">
+                <span class="state-dot" id="voiceStateDot"></span>
+                <span id="voiceStateText">Listening...</span>
+            </div>
+
+            <div class="voice-mode-top-actions">
+                <button class="icon-btn voice-hdr-btn" id="voiceMuteToggleBtn" type="button" title="Mute/Unmute AI Audio" aria-label="Mute microphone">
+                    <i class="fa-solid fa-volume-high" id="voiceMuteIcon"></i>
+                </button>
+                <button class="icon-btn voice-hdr-btn" id="voiceSettingsToggleBtn" type="button" title="Voice & Language Options" aria-label="Voice settings">
+                    <i class="fa-solid fa-sliders"></i>
+                </button>
+                <button class="voice-exit-btn" id="closeVoiceModeBtn" type="button" title="Close Voice Mode" aria-label="Close Voice Mode">
+                    <i class="fa-solid fa-xmark"></i>
+                    <span>Close</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Voice Settings Drawer -->
+        <div class="voice-settings-drawer" id="voiceSettingsDrawer">
+            <div class="v-setting-row">
+                <label for="vmLangSelect">Voice Language</label>
+                <select id="vmLangSelect">
+                    <option value="en-IN" selected>English (India)</option>
+                    <option value="en-US">English (US)</option>
+                    <option value="hi-IN">Hindi (India)</option>
+                </select>
+            </div>
+            <div class="v-setting-row">
+                <label for="vmVoiceSelect">Preferred Voice</label>
+                <select id="vmVoiceSelect">
+                    <option value="auto">Auto Select (Default)</option>
+                </select>
+            </div>
+            <div class="v-setting-row">
+                <label for="vmSpeedSelect">Speech Speed</label>
+                <select id="vmSpeedSelect">
+                    <option value="0.75">0.75x (Slow)</option>
+                    <option value="1.0" selected>1.0x (Normal)</option>
+                    <option value="1.25">1.25x (Fast)</option>
+                    <option value="1.5">1.5x (Faster)</option>
+                </select>
+            </div>
+            <div class="v-setting-row">
+                <label for="vmPitchSelect">Voice Pitch</label>
+                <select id="vmPitchSelect">
+                    <option value="0.8">0.8 (Low)</option>
+                    <option value="1.0" selected>1.0 (Normal)</option>
+                    <option value="1.2">1.2 (High)</option>
+                </select>
+            </div>
+            <div class="v-setting-row">
+                <label for="vmVolumeSelect">Voice Volume</label>
+                <select id="vmVolumeSelect">
+                    <option value="0.5">50%</option>
+                    <option value="0.8">80%</option>
+                    <option value="1.0" selected>100%</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Center Stage: Orb & Visualizer -->
+        <div class="voice-mode-stage">
+            <div class="voice-orb-wrapper">
+                <div class="voice-orb-glow" id="voiceOrbGlow"></div>
+                <div class="voice-orb-core" id="voiceOrbCore">
+                    <svg class="voice-orb-sparkle" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 0C12 6.62742 6.62742 12 0 12C6.62742 12 12 17.3726 12 24C12 17.3726 17.3726 12 24 12C17.3726 12 12 6.62742 12 0Z" fill="white"/>
+                    </svg>
+                </div>
+                <!-- Dynamic audio wave bars -->
+                <div class="voice-stage-waves" id="voiceStageWaves">
+                    <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
+            </div>
+
+            <div class="voice-status-caption" id="voiceStatusCaption">Listening... Speak now</div>
+
+            <!-- Live Subtitles / Transcript Box -->
+            <div class="voice-transcript-card" id="voiceTranscriptCard">
+                <div class="v-transcript-row user-row" id="voiceUserRow">
+                    <span class="v-tag">You:</span>
+                    <span class="v-text" id="voiceUserText">"Hello NEXORA AI"</span>
+                </div>
+                <div class="v-transcript-row ai-row" id="voiceAiRow" style="display: none;">
+                    <span class="v-tag">NEXORA AI:</span>
+                    <span class="v-text" id="voiceAiText"></span>
+                </div>
+            </div>
+
+            <!-- Action Controls during SPEAKING state -->
+            <div class="voice-stage-actions" id="voiceStageActions" style="display: none;">
+                <button class="voice-action-btn stop-btn" id="voiceStopSpeakingBtn" type="button" aria-label="Stop Speaking">
+                    <i class="fa-solid fa-volume-xmark"></i>
+                    <span>Stop Speaking</span>
+                </button>
+                <button class="voice-action-btn interrupt-btn" id="voiceInterruptBtn" type="button" aria-label="Interrupt AI">
+                    <i class="fa-solid fa-hand"></i>
+                    <span>Tap to interrupt</span>
+                </button>
+            </div>
+
+            <!-- End Voice Bottom Action Pill -->
+            <div class="voice-bottom-controls">
+                <button class="voice-end-pill-btn" id="endVoiceModeBtn" type="button" title="End Voice Conversation" aria-label="End Voice Mode">
+                    <i class="fa-solid fa-phone-slash"></i>
+                    <span>End Voice</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Listening Overlay -->
+    <div class="voice-overlay" id="voiceOverlay">
+        <div class="voice-overlay-card">
+            <div class="voice-waveform" id="voiceWaveform">
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+            </div>
+            <div class="voice-overlay-label" id="voiceOverlayLabel">Listening...</div>
+            <div class="voice-transcript-preview" id="voiceTranscriptPreview"></div>
+            <button class="voice-stop-btn" id="voiceStopBtn">
+                <i class="fa-solid fa-stop"></i>
+                Stop
+            </button>
+        </div>
+    </div>
+
+    <!-- AI Speaking Indicator -->
+    <div class="ai-speaking-toast" id="aiSpeakingToast" style="display:none;">
+        <div class="ai-speaking-wave">
+            <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <span>AI Speaking...</span>
+        <button class="ai-speaking-stop" id="aiSpeakingStopBtn" title="Stop speaking">
+            <i class="fa-solid fa-volume-xmark"></i>
+        </button>
+    </div>
+
+    <!-- Gemini Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-gear"></i> NEXORA AI API & Backend Settings</h3>
+                <button class="icon-btn modal-close" id="closeSettingsModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="modalGeminiKey">Google Gemini API Key</label>
+                    <input type="password" id="modalGeminiKey" value="" placeholder="AIzaSy...">
+                    <small>Required for Google Gemini 1.5/2.0 vision analysis & streaming. Get a free API key at <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #A8C7FA;">Google AI Studio (aistudio.google.com)</a>.</small>
+                </div>
+                <div class="form-group">
+                    <label for="modalMongoUri">MongoDB URI Connection</label>
+                    <input type="text" id="modalMongoUri" placeholder="mongodb://localhost:27017">
+                    <small>Default local database URI for persisting conversation history.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelSettingsBtn">Cancel</button>
+                <button class="btn btn-primary" id="saveSettingsBtn">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Persona Modal -->
+    <div class="modal-overlay" id="systemPromptModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-sliders"></i> System Prompt & Persona</h3>
+                <button class="icon-btn modal-close" id="closeSystemModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="systemPromptInput">System Instructions for Gemini</label>
+                    <textarea id="systemPromptInput" rows="5" placeholder="You are NEXORA AI, an expert intelligent AI assistant..."></textarea>
+                    <small>Sets custom personality, constraints, and instructions for NEXORA AI.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelSystemBtn">Cancel</button>
+                <button class="btn btn-primary" id="saveSystemBtn">Apply Persona</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Authentication Modal (Login & Registration) -->
+    <div class="modal-overlay" id="authModal">
+        <div class="modal-card auth-modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-user-lock"></i> <span id="authModalTitle">Sign In to NEXORA AI</span></h3>
+                <button class="icon-btn modal-close" id="closeAuthModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="auth-tabs">
+                <button class="auth-tab-btn active" id="tabLoginBtn"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+                <button class="auth-tab-btn" id="tabRegisterBtn"><i class="fa-solid fa-user-plus"></i> Register</button>
+            </div>
+            <div class="modal-body">
+                <div class="auth-error-msg" id="authErrorMsg" style="display: none;"></div>
+                
+                <!-- Login Form -->
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginEmailInput">Email or Username</label>
+                        <input type="text" id="loginEmailInput" placeholder="developer@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPasswordInput">Password</label>
+                        <input type="password" id="loginPasswordInput" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary auth-submit-btn" id="loginSubmitBtn">
+                        <i class="fa-solid fa-right-to-bracket"></i> Sign In
+                    </button>
+                </form>
+
+                <!-- Register Form -->
+                <form id="registerForm" style="display: none;">
+                    <div class="form-group">
+                        <label for="regUsernameInput">Username</label>
+                        <input type="text" id="regUsernameInput" placeholder="developer123" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regEmailInput">Email Address</label>
+                        <input type="email" id="regEmailInput" placeholder="developer@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regPasswordInput">Password (min 6 chars)</label>
+                        <input type="password" id="regPasswordInput" placeholder="••••••••" required minlength="6">
+                    </div>
+                    <button type="submit" class="btn btn-primary auth-submit-btn" id="regSubmitBtn">
+                        <i class="fa-solid fa-user-plus"></i> Create Account
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- App JavaScript -->
+    <script src="/static/js/app.js?v=6.0"></script>
+    <script src="/static/js/voice.js?v=2.0"></script>
+</body>
+
+</html>
